@@ -33,6 +33,7 @@ Remember that [Emil Hvitfeldt](https://www.emilhvitfeldt.com/) (of Posit) has pu
 ```{r load-packages}
   library("tidyverse")
   library("tidymodels")
+  library("GGally")
 ```
 
 Since we will be looking at many relationships graphically, it will be nice to not have to code each of these individually.
@@ -123,12 +124,20 @@ After running the `pairs-plot` code, answer the following questions:
 1. For each pair of variables, how would you describe the relationship graphically?
   Do any of the relationships look linear?
   Are there any interesting/odd features (outliers, non-linear patterns, etc.)?
+>pf_score vs. pf_expression_control: There is a positive, possibly non-linear relationship, as the scatterplot suggests that as pf_expression_control increases, pf_score also increases. The relationship seems stronger in the middle range of pf_expression_control. There may be a slight curvature suggesting a non-linear relationship.
+
+>pf_score vs. pf_ss: There seems to be a positive relationship. The scatterplot shows an upward trend, indicating that as pf_ss increases, so does pf_score. The spread of points becomes more dispersed at higher values of pf_ss, which might suggest some degree of non-linearity or heteroscedasticity (non-constant variance).
+
+>pf_expression_control vs. pf_ss: There is a positive relationship, but it appears to be weaker than the other two. The scatterplot shows a trend where pf_expression_control increases with pf_ss, but the points are more spread out, suggesting more variance in the relationship.
 
 2. For each pair of variables, how would you describe the relationship numerically?
+>pf_score vs. pf_expression_control: The numerical correlation (Corr) is 0.845, which is quite strong, suggesting a strong positive association.
+>pf_score vs. pf_ss: The numerical correlation is 0.753, which indicates a strong positive association, but not as strong as the first pair.
+>pf_expression_control vs. pf_ss: The numerical correlation is 0.546, which is moderate, indicating a weaker association than the other two pairs.
 
 3. Are your two explanatory variables collinear (correlated)?
   Essentially, this means that adding more than one of these variables to the model would not add much value to the model.
-  We will talk more on this issue in Activity 4 (other considerations in regression models).
+>Given that pf_expression_control and pf_ss have a correlation of 0.546, which is moderate, there is some degree of collinearity, but it's not particularly high.With a correlation of 0.546, there may be some overlap, but likely not enough to be considered highly collinear in most contexts.
 
 ## The multiple linear regression model
 
@@ -143,7 +152,7 @@ $$
 - Replace `explanatory`, similarly to what you did in your `pairs-plot` R code chunk.
 - Run your code chunk or knit your document.
   
-```{verbatim mlr-model}
+```{r mlr-model}
 #fit the mlr model
 lm_spec <- linear_reg() %>%
   set_mode("regression") %>%
@@ -152,7 +161,7 @@ lm_spec <- linear_reg() %>%
 lm_spec
 
 mlr_mod <- lm_spec %>% 
-fit(pf_score ~ pf_expression_control + explanatory, data = hfi_2016)
+fit(pf_score ~ pf_expression_control + pf_ss, data = hfi_2016)
 
 # model output
 tidy(mlr_mod)
@@ -164,7 +173,7 @@ After doing this, answer the following questions:
   Remember in Activity 2 that this looked like:
 
 $$
-\hat{y} = b_0 + b_1 \times x_1
+\hat{pf_score} = 1.50 + 0.397 \times pf_expression_control + 0.434 \times pf_ss
 $$
   
   where $b_0$ and $b_1$ were your model parameter estimates.
@@ -172,7 +181,11 @@ $$
 
 5. For each of the estimated parameters (the *y*-intercept and the slopes associated with each explanatory variable - three total), interpret these values in the context of this problem.
   That is, what do they mean for a "non-data" person?
+>Intercept (1.50): This is the expected value of pf_score when both pf_expression_control and pf_ss are zero. It's the baseline level of pf_score.
 
+>Coefficient for pf_expression_control (0.397): This suggests that for every one-unit increase in pf_expression_control, holding pf_ss constant, the pf_score is expected to increase by 0.397 units.
+
+>Coefficient for pf_ss (0.434): This suggests that for every one-unit increase in pf_ss, holding pf_expression_control constant, the pf_score is expected to increase by 0.434 units.
 ## Challenge: 3-D plots
 
 In *ISL*, the authors provided a 3-D scatterplot with a plane that represents the estimated model.
@@ -180,13 +193,31 @@ Do some internet sleuthing to minimally produce a 3-D scatterplot (you do not ne
 Ideally, this would be something that plays nicely with (looks similar to) `{ggplot2}`.
 
 - Create a new R code chunk, with a descriptive name, and add your code to create this plot.
+```{r}
+library(plotly)
+library(plotly)
+
+
+# If you do not have a variable for coloring, you can remove the color argument
+fig <- plot_ly(hfi_2016, x = ~pf_expression_control, y = ~pf_score, z = ~pf_ss)
+fig <- fig %>% add_markers()
+fig <- fig %>% layout(scene = list(xaxis = list(title = 'PF Expression Control'),
+                                   yaxis = list(title = 'PF Score'),
+                                   zaxis = list(title = 'PF SS')))
+
+plotly::ggplotly(fig)
+
+```
+
 
 After doing this, respond to the following prompt:
 
 6. Compare your 3-D scatterplot and the `GGally::ggpairs` output.
   Comment on the strengths and weaknesses of these two visualizations.
   Do both display on GitHub when you push your work there?
+>Comparing a 3D scatterplot and the GGally::ggpairs output, each visualization has its own strengths and weaknesses. The ggpairs output from GGally provides a comprehensive pairwise comparison between variables, including scatterplots for bivariate relationships and histograms or density plots for univariate distributions. This is particularly useful for identifying trends, correlations, and distributions within a dataset at a glance.
 
+>On the other hand, a 3D scatterplot can provide insights into the relationship between three variables simultaneously. This can be particularly useful for identifying clusters or patterns in multidimensional data that might not be evident in a 2D space. However, 3D plots can be harder to interpret accurately and may require interaction (such as rotation) to fully understand the spatial relationships between points.
 # Day 2
 
 During Day 1, you fit a model with one quantitative response variable and two quantitative explanatory variables.
@@ -214,7 +245,7 @@ Fortunately, we can create our own.
 - In the code chunk below titled `binary-pred`, replace "verbatim" with "r" just before the code chunk title.
 - Run your code chunk or knit your document.
   
-```{verbatim binary-pred}
+```{r binary-pred}
 hfi_2016 <- hfi_2016 %>%
   mutate(west_atlantic = if_else(
     region %in% c("North America", "Latin America & the Caribbean"),
@@ -224,12 +255,13 @@ hfi_2016 <- hfi_2016 %>%
 ```
 
 7. What is happening in the above code? What new variable did we create? How do you know it is new? What values does it take when?
+>After this code is run, hfi_2016 will have a new column called west_atlantic, where rows representing regions in "North America" or "Latin America & the Caribbean" will have the value "No", and all other rows will have the value "Yes".
 
 
 - In the code chunk below titled `qual-mlr`, replace "verbatim" with "r" just before the code chunk title.
 - Run your code chunk or knit your document.
 
-```{verbatim qual-mlr}
+```{r qual-mlr}
 # review any visual patterns
 hfi_2016 %>% 
   select(pf_score, west_atlantic, pf_expression_control) %>% 
@@ -258,12 +290,14 @@ Also, when looking at your model (`tidy`) output, the `term` label for your qual
 Answer the following questions:
 
 8. What is the label that R assigned to this explanatory variable `term`?
-
+>The label term is generally assigned by the ggplot2 or related packages when a categorical variable is converted into a format suitable for regression models (like when using lm() or glm() functions in R). If west_atlantic was the explanatory variable in question, R would typically assign labels like west_atlanticYes and west_atlanticNo.
 
 9. What information is represented here?
+>The information represented here usually refers to the effect of each level of the categorical variable on the response variable, relative to a baseline (which is often the first level or a specified reference level). If west_atlantic was converted to a term in the model, the coefficients would indicate how being in one category versus the other affects the predicted outcome.
 
 
 10. What information is missing here?
+>The information missing here may include the reference level for the categorical variable, which is essential to interpret the coefficients of the other levels.
 
 
 Your are essentially fitting two models (or $k$ models, where $k$ is the number of levels in your qualitative variable).
@@ -277,11 +311,29 @@ You can change this reference level of a categorical variable, which is the leve
 Use `?relevel` to learn more.
 
 11. Write the estimated equation for your MLR model with a qualitative explanatory variable.
+$$
+\hat{pf_score} = 4.3771413 + 0.5401164 \times (\text{pf_expression_control}) - 0.1024089 \times (\text{west_atlanticYes})
+
+$$
+
+\text{pf_expression_control} is the quantitative explanatory variable.
+\text{west_atlanticYes} is the indicator variable for the west_atlantic variable (1 if Yes, 0 if No).
 
 
 12. Now, for each level of your qualitative variable, write the simplified equation of the estimated line for that level. 
   Note that if your qualitative variable has two levels, you should have two simplified equations.
-
+  
+  For the level represented as No (since it's the reference level and not shown, it is coded as 0):
+  $$
+\hat{y}_{\text{No}} = 4.3771413 + 0.5401164 \times (\text{pf_expression_control})
+$$
+For the level represented as Yes:
+$$
+\hat{y}_{\text{Yes}} = (4.3771413 - 0.1024089) + 0.5401164 \times (\text{pf_expression_control})
+$$
+$$
+\hat{y}_{\text{Yes}} = 4.2747324 + 0.5401164 \times (\text{pf_expression_control})
+$$
 
 
 The interpretation of the coefficients (parameter estimates) in multiple regression is slightly different from that of simple regression.
@@ -290,16 +342,31 @@ The estimate for the quantitative variable reflects how much change in the respo
 
 13. Interpret the parameter estimate for the reference level of your categorical variable in the context of your problem.
 Page 83 of the text can help here (or have me come chat with you).
-
+>For regions where west_atlantic is No (the reference level), the baseline value of the predicted outcome starts at 4.3771413 when pf_expression_control is zero.
+>For regions where west_atlantic is Yes, the starting baseline value of the predicted outcome is adjusted downwards by 0.1024089 units to 4.2747324 when pf_expression_control is zero. 
 
 14. Interpret the parameter estimate for your quantitative variable in the context of your problem.
-
+>For each unit increase in pf_expression_control, the predicted outcome increases by 0.5401164 units.
 
 ## Challenge: Multiple levels
 
 Below, create a new R code chunk (with a descriptive name) that fits a new model with the same response (`pf_score`) and quantitative explanatory variable (`pf_expression_control`), but now use a qualitative variable with more than two levels (say, `region`) and obtain the `tidy` model output.
 How does R appear to handle categorical variables with more than two levels?
+```{r MLR-with-multilevel-categorical}
 
+# Fit the model
+model <- lm(pf_score ~ pf_expression_control + region, data = hfi_2016)
+
+# Obtain the tidy model output
+tidy_model_output <- broom::tidy(model)
+
+# Display the tidy model output
+print(tidy_model_output)
+
+
+```
+
+>When you have a categorical variable with k levels, R will create K−1 dummy variables in the model, using one level as the reference category (often the first level alphabetically). Each coefficient for these dummy variables will represent the difference in the response variable between the reference category and that specific level.
 
 
 # Day 3
