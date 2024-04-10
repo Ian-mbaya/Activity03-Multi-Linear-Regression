@@ -427,19 +427,40 @@ After doing this, answer the following question:
 
 15. When viewing the `tidy` output, notice that the interaction term is listed as `qualitativelevel:quantitative`.
   Referring back to Day 2 with how R displays qualitative variables, interpret what this syntax means.
-
+>It indicates that R is showing the effect of the interaction between a qualitative variable at a specific level and a quantitative variable. Specifically, it's telling you that the effect of pf_expression_control on the response pf_score may differ when west_atlantic is "Yes" compared to when it is "No" (the reference level).
 
 16. Using page 100 of *ISLR* as a reference, if needed, and your work from Day 2, write the simplified equation of the line corresponding to each level of your qualitative explanatory variable.
 
+For the reference level west_atlanticNo (implied as it is not listed):
+$$
+\hat{y}_{\text{No}} = 5.7213860 + 0.2961044 \times (\text{pf_expression_control})
+$$
+
+
 
 17. For two observations with similar values of the quantitative , which level tends to have higher values of the response variable?
+For the level west_atlanticYes:
+$$
+\hat{y}_{\text{Yes}} = (5.7213860 - 1.5979076) + (0.2961044 + 0.2750385) \times (\text{pf_expression_control})
+$$
+$$
+\hat{y}_{\text{Yes}} = 4.1234784 + 0.5711429 \times (\text{pf_expression_control})
+$$
 
 
 18. Like you did in Day 1, assess the fit of this model (no need to do any formal hypothesis testing - we will explore this next).
   How does `int_mod`'s fit compare to `mlr_mod`?
   What did you use to compare these?
   Why?
+```{r glance-intmod}
+glance(int_mod)
+```
+```{r glance-mlr-mod}
+glance(mlr_mod)
+```
+>R-squared Value: The R-squared of 0.8353151 indicates that the model without the interaction explains approximately 83.53% of the variance in the response variable, which is quite high. In contrast, the R-squared of 0.7330243 for the model with the interaction term is lower, suggesting that it explains less variance in the response.
 
+>AIC (Akaike Information Criterion): The AIC of 303.789 for the model without the interaction is lower than the AIC of 384.0546 for the model with the interaction term. Lower AIC values are preferred as they indicate a model with a better fit relative to its complexity.
 
 Recall our brief discussion on how many disciplines are moving away from $p$-values in favor of other methods.
 We will explore $p$-values these other methods later this semester, but we will practice our classical methods here.
@@ -450,10 +471,10 @@ One way to check this is to build our null model (no predictors) and then compar
 
 - In the code chunk below titled `mod-comp`, replace "verbatim" with "r" just before the code chunk title.
   
-```{verbatim mod-comp}
+```{r mod-comp}
 # null model
 null_mod <- lm_spec %>% 
-fit(response ~ 1, data = data)
+fit(pf_score ~ 1, data = hfi_2016)
 
 anova(
   extract_fit_engine(int_mod),
@@ -464,7 +485,8 @@ anova(
 19. Using your background knowledge of $F$ tests, what is the $F$ test statistic and $p$-value for this test?
   Based on an $\alpha = 0.05$ significant level, what should you conclude?
 
-
+>The F test statistic for this comparison is 144.6, and the p-value associated with this F test is very small (2.2e-16, essentially 0).
+>With a p-value much lower than the significance level of α = 0.05, you would reject the null hypothesis of the ANOVA, which posits that the model with no predictors fits just as well as the model with predictors and their interaction. Therefore, you conclude that the predictors (or at least one of them) do contribute significantly to the model, indicating that there is an effect of the predictors on the response variable pf_score.
 
 ## Partial slope test - do all predictors help explain $y$?
 
@@ -480,7 +502,8 @@ Because the interaction term is a combination of the other two variables, we sho
 20. What is the $t$ test statistic and $p$-value associated with this test?
   Based on an $\alpha = 0.05$ significant level, what should you conclude?
 
-
+>The $t$ test statistic associated with the test for the interaction term is 1.141 and the corresponding $p$-value is 0.254.
+>Based on the significance level of $\alpha = 0.05$, since the p-value (0.254) is greater than the chosen significance level, we fail to reject the null hypothesis. This suggests that there is insufficient evidence to conclude that the interaction term significantly contributes to the model. Therefore, it may be appropriate to consider removing the interaction term from the model.
 
 If your interaction term was not significant, you could consider removing it.
 Now look at your two non-interaction terms...
@@ -489,6 +512,20 @@ Now look at your two non-interaction terms...
   Based on an $\alpha = 0.05$ significant level, what should you conclude about these two predictors?
 
 
+>Since the interaction term was not significant, we can proceed to assess the significance of the two main variables (pf_expression_control and west_atlantic) individually.
+
+>For pf_expression_control:
+
+>The $t$ test statistic is 2.298 and the corresponding $p$-value is 0.0237.
+
+>For west_atlanticYes:
+
+>The $t$ test statistic is -0.373 and the corresponding $p$-value is 0.711.
+
+>Based on the significance level of $\alpha = 0.05$:
+
+>For pf_expression_control, since the p-value (0.0237) is less than the chosen significance level, we reject the null hypothesis and conclude that pf_expression_control significantly contributes to the model.
+>For west_atlanticYes, since the p-value (0.711) is greater than the chosen significance level, we fail to reject the null hypothesis. This suggests that there is insufficient evidence to conclude that west_atlanticYes significantly contributes to the model when considering the other variables.
 
 You would not need to do (21) if the interaction was significant.
 You also should not remove a main variable (non-interaction variable) if the interaction variable remains in your model.
